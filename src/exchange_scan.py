@@ -318,8 +318,8 @@ def _run(a) -> int:
                          f"(${r.usd/1e6:.1f}M) {arrow} {r.counterparty[:10]}…")
         if ext_agg is not None:
             lines.append("非交易所对手方 TOP:")
-            for a, row in ext_agg.iterrows():
-                lines.append(f"  {a[:12]}… {row['n']}笔 ${row['usd']/1e6:.1f}M")
+            for addr, row in ext_agg.iterrows():
+                lines.append(f"  {addr[:12]}… {row['n']}笔 ${row['usd']/1e6:.1f}M")
         msg = "\n".join(lines)
 
     print(msg)
