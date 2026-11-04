@@ -1,0 +1,4 @@
+requests>=2.31
+pandas>=2.0
+pycryptodome>=3.19
+pyyaml>=6.0

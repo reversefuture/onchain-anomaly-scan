@@ -1,0 +1,42 @@
+# 交易所热钱包监控清单（ETH 主网）
+# 说明：地址来自公开标签；扫描脚本会同时输出每条地址近两天的转账数量，
+#      数量为 0 的说明该地址当前不活跃或标签有误，可据此剔除。
+wallets:
+  - {exchange: Binance, label: "Binance 1",  address: "0x3f5CE5FBFe3E9af3971dD833D26bA9b5C936f0bE"}
+  - {exchange: Binance, label: "Binance 2",  address: "0xD551234Ae421e3BCBA99A0Da6d736074f22192FF"}
+  - {exchange: Binance, label: "Binance 3",  address: "0x564286362092D8e7936f0549571a803B203aAceD"}
+  - {exchange: Binance, label: "Binance 4",  address: "0x0681d8Db095565FE8A346fA0277bFfdE9C0eDBBF"}
+  - {exchange: Binance, label: "Binance 5",  address: "0xfE9e8709d3215310075d67E3ed32A380CCf451C8"}
+  - {exchange: Binance, label: "Binance 6",  address: "0x4E9ce36E442e55EcD9025B9a6E0D88485d628A67"}
+  - {exchange: Binance, label: "Binance 7",  address: "0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8"}
+  - {exchange: Binance, label: "Binance 8",  address: "0xF977814e90dA44bFA03b6295A0616a897441aceC"}
+  - {exchange: Binance, label: "Binance 14", address: "0x28C6c06298d514Db089934071355E5743bf21d60"}
+  - {exchange: Binance, label: "Binance 15", address: "0x21a31Ee1afC51d94C2eFcCAa2092aD1028285549"}
+  - {exchange: Binance, label: "Binance 16", address: "0xDFd5293D8e347dFe59E90eFd55b2956a1343963d"}
+  - {exchange: Binance, label: "Binance 17", address: "0x56Eddb7aa87536c09CCc2793473599fD21A8b17F"}
+  - {exchange: Binance, label: "Binance 18", address: "0x9696f59E4d72E237BE84fFD425DCaD154Bf96976"}
+  - {exchange: Binance, label: "Binance 19", address: "0x4976A4A02f38326660D17bf34b431dC6e2eb2327"}
+  - {exchange: OKX,     label: "OKX Hot",    address: "0x6cC5F688a315f3dC28A7781717a9A798a59fDA7b"}
+  - {exchange: Coinbase, label: "Coinbase 1", address: "0x71660c4005BAe913Eae4143Ab724fF80D95d97A1"}
+  - {exchange: Coinbase, label: "Coinbase 2", address: "0x503828976D22510aad0201ac7EC88293211D23Da"}
+  - {exchange: Coinbase, label: "Coinbase 3", address: "0xddfAbCdc4D8FfC6d5be95A9Bdc94d9944fBaEF26"}
+  - {exchange: Coinbase, label: "Coinbase 4", address: "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43"}
+  - {exchange: Coinbase, label: "Coinbase 5", address: "0x77696bb39917C91A0c3908D577d5E322095425cA"}
+
+  # 非交易所监控对象（MEV / 套利机器人）
+  # jaredfromsubway.eth：ETH 主网最活跃的三明治套利机器人之一（ENS 已在 Etherscan/Basescan 验证）
+  - {exchange: MEV Bot, label: "jaredfromsubway.eth", address: "0xae2Fc483527B8EF99EB5D9B44875F005ba1FaE13",
+     min_usd: 50000, internal: true, skip_external: true}
+  # 说明：该地址每天上千笔微额外部交易（1e-16 ETH 级），噪声极大；
+  #      真正的利润归集走「合约→EOA 的内部交易」（如 0x1f2f…→本地址 50 ETH），
+  #      所以这里 skip_external + internal:true，阈值降到 $5 万。
+
+scan:
+  days: 2                 # 回看天数
+  min_usd: 1_000_000      # 单笔 >= 100 万美金才通知
+  max_pages: 3            # 每个地址最多翻页数（1000 条/页）
+  etherscan_key_file: "D:/hermes/factor_icir/config/.api_keys.env"
+  etherscan_key_name: "ETHERSCAN_TOKEN"
+  proxy: "http://127.0.0.1:7890"
+  feishu_webhook: "https://open.feishu.cn/open-apis/bot/v2/hook/ba3a2e18-e6d4-42a3-9858-afd279371fd9"
+  notify: true

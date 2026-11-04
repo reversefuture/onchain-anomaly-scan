@@ -1,0 +1,63 @@
+name: onchain-anomaly-scan
+
+on:
+  schedule:
+    # 每小时第 5 分钟（UTC）；1h 对比需要每小时运行
+    - cron: "5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: onchain-scan
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Scan exchange wallets (last 1 day)
+        env:
+          ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
+        run: python src/exchange_scan.py --days 1 --no-notify
+
+      - name: Anomalies + BTC/ETH top25 + Gemini
+        env:
+          ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
+        run: python src/anomaly_scan.py --days 1 --min-usd 1000000
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-${{ github.run_number }}
+          path: outputs/
+          retention-days: 14
+
+      - name: Persist top25 state
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          touch data/seen_tx.json
+          git add data/richlist_state.json data/seen_tx.json
+          if git diff --cached --quiet; then
+            echo "no state change"
+            exit 0
+          fi
+          git commit -m "chore: onchain state $(date -u +%FT%TZ)"
+          git push
