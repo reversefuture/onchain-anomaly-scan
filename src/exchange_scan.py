@@ -91,14 +91,15 @@ def token_usd(symbol: str, amount: float, prices: dict[str, float]) -> float | N
     return amount * p if p else None
 
 
-def build_prices() -> dict[str, float]:
-    """用 OKX 现货拉常见代币价格（失败则留空，估值显示未知）。"""
-    import ccxt
-    ex = ccxt.okx({"enableRateLimit": True, "timeout": 15000,
-                   "options": {"defaultType": "spot"},
-                   "proxies": {"http": "http://127.0.0.1:7890", "https": "http://127.0.0.1:7890"}})
+def build_prices(proxy: str = "") -> dict[str, float]:
+    """OKX 现货优先；GitHub Actions（美国 IP）常被 OKX 拒绝，回退 CoinGecko。"""
     out: dict[str, float] = {}
+    px = {"http": proxy, "https": proxy} if proxy else None
     try:
+        import ccxt
+        ex = ccxt.okx({"enableRateLimit": True, "timeout": 15000,
+                       "options": {"defaultType": "spot"},
+                       **({"proxies": px} if px else {})})
         ex.load_markets()
         for sym in ["ETH", "WETH", "BTC", "WBTC", "BNB", "SOL", "XRP", "DOGE", "ADA", "LINK"]:
             try:
@@ -108,6 +109,18 @@ def build_prices() -> dict[str, float]:
                 continue
     except Exception:
         pass
+    if len(out) < 3:      # 回退：CoinGecko（无需 key）
+        try:
+            r = requests.get("https://api.coingecko.com/api/v3/coins/markets",
+                             params={"vs_currency": "usd", "per_page": 250},
+                             timeout=30, proxies=px, headers=UA)
+            for row in (r.json() or []):
+                sym = str(row.get("symbol") or "").upper()
+                price = row.get("current_price")
+                if sym and price:
+                    out.setdefault(sym, float(price))
+        except Exception as e:
+            print("CoinGecko 价格回退失败:", type(e).__name__)
     out["WETH"] = out.get("ETH", out.get("WETH", 0)) or out.get("WETH", 0)
     out["WBTC"] = out.get("BTC", out.get("WBTC", 0)) or out.get("WBTC", 0)
     return {k: v for k, v in out.items() if v}
@@ -176,7 +189,7 @@ def _run(a) -> int:
     mins = {float(w.get("min_usd", min_usd)) for w in sel}
     lo, hi = min(mins), max(mins)
     thr_label = f"≥${lo/1e4:.0f}万" if lo == hi else f"≥${lo/1e4:.0f}万~${hi/1e4:.0f}万（按地址）"
-    prices = build_prices()
+    prices = build_prices(proxy)
     print(f"价格: ETH={prices.get('ETH')} BTC={prices.get('BTC')}")
 
     records: list[dict] = []
