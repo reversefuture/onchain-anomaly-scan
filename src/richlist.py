@@ -47,26 +47,36 @@ def _get(url: str, params: dict | None = None, timeout: int = 30, attempts: int 
 
 # ── 余额 ────────────────────────────────────────────────────────────────────
 def btc_balance(addr: str) -> float | None:
-    j = _get(f"https://blockstream.info/api/address/{addr}", timeout=25).json()
-    s = j.get("chain_stats") or {}
-    return (int(s.get("funded_txo_sum", 0)) - int(s.get("spent_txo_sum", 0))) / 1e8
+    """Blockstream 优先；CI 上不可达时回退 mempool.space / blockchain.info。"""
+    try:
+        j = _get(f"https://blockstream.info/api/address/{addr}", timeout=20).json()
+        s = j.get("chain_stats") or {}
+        return (int(s.get("funded_txo_sum", 0)) - int(s.get("spent_txo_sum", 0))) / 1e8
+    except Exception:
+        pass
+    try:
+        j = _get(f"https://mempool.space/api/address/{addr}", timeout=20).json()
+        s = j.get("chain_stats") or {}
+        return (int(s.get("funded_txo_sum", 0)) - int(s.get("spent_txo_sum", 0))) / 1e8
+    except Exception:
+        pass
+    j = _get("https://blockchain.info/balance", {"active": addr}, timeout=20).json()
+    row = j.get(addr) or {}
+    return int(row.get("final_balance") or 0) / 1e8
 
 
 def eth_balance(addr: str, etherscan_key: str = "") -> float | None:
-    try:
-        j = _get(f"https://eth.blockscout.com/api/v2/addresses/{addr}", timeout=25).json()
-        return int(j.get("coin_balance") or 0) / 1e18
-    except Exception:
-        if not etherscan_key:
-            raise
-    for attempt in range(3):
-        r = _get("https://api.etherscan.io/v2/api",
-                 {"chainid": 1, "module": "account", "action": "balance",
-                  "address": addr, "tag": "latest", "apikey": etherscan_key}, 25).json()
-        if str(r.get("status")) == "1" and str(r.get("result", "")).isdigit():
-            return int(r["result"]) / 1e18
-        time.sleep(0.6 + attempt * 0.4)     # 免费额度 5 req/s，退避重试
-    raise RuntimeError(f"etherscan balance failed: {str(r.get('result'))[:60]}")
+    """有 key 时 Etherscan 优先（CI 最稳）；否则 Blockscout。"""
+    if etherscan_key:
+        for attempt in range(3):
+            r = _get("https://api.etherscan.io/v2/api",
+                     {"chainid": 1, "module": "account", "action": "balance",
+                      "address": addr, "tag": "latest", "apikey": etherscan_key}, 25).json()
+            if str(r.get("status")) == "1" and str(r.get("result", "")).isdigit():
+                return int(r["result"]) / 1e18
+            time.sleep(0.6 + attempt * 0.4)
+    j = _get(f"https://eth.blockscout.com/api/v2/addresses/{addr}", timeout=25).json()
+    return int(j.get("coin_balance") or 0) / 1e18
 
 
 # ── ETH Top25 ───────────────────────────────────────────────────────────────
@@ -168,15 +178,21 @@ def load_seed() -> dict:
 # ── 快照与对比 ──────────────────────────────────────────────────────────────
 def _gather(addrs: list[str], fn, workers: int = 6) -> dict:
     out: dict[str, float] = {}
+    errs = 0
     with ThreadPoolExecutor(max_workers=workers) as ex:
         futs = {ex.submit(fn, a): a for a in addrs}
         for f in as_completed(futs):
             try:
                 v = f.result()
-            except Exception:
+            except Exception as e:
+                errs += 1
+                if errs <= 3:
+                    print("  余额失败:", futs[f][:12], type(e).__name__, str(e)[:80])
                 continue
             if v is not None:
                 out[futs[f]] = v
+    if errs:
+        print(f"  余额汇总: 失败 {errs}/{len(addrs)}")
     return out
 
 
