@@ -1,6 +1,7 @@
 .venv/
 __pycache__/
 *.pyc
+_ci_*.py
 outputs/
 data/source_health.json
 data/scan.lock

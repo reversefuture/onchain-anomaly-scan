@@ -53,8 +53,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p data
           touch data/seen_tx.json
-          git add data/richlist_state.json data/seen_tx.json
+          git add -A data
           if git diff --cached --quiet; then
             echo "no state change"
             exit 0
