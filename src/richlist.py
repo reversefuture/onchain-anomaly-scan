@@ -196,6 +196,33 @@ def _gather(addrs: list[str], fn, workers: int = 6) -> dict:
     return out
 
 
+def btc_balances_batch(addrs: list[str]) -> dict:
+    """一次请求拿全部 BTC 余额（blockchain.info 支持 | 分隔），避免 25 次并发被限流。"""
+    j = _get("https://blockchain.info/balance",
+             {"active": "|".join(addrs)}, timeout=45).json()
+    out = {}
+    for a in addrs:
+        row = j.get(a) or {}
+        if "final_balance" in row:
+            out[a] = int(row["final_balance"]) / 1e8
+    return out
+
+
+def eth_balances_batch(addrs: list[str], key: str) -> dict:
+    """Etherscan balancemulti，每批 20 个地址。"""
+    out = {}
+    for i in range(0, len(addrs), 20):
+        chunk = addrs[i:i + 20]
+        r = _get("https://api.etherscan.io/v2/api",
+                 {"chainid": 1, "module": "account", "action": "balancemulti",
+                  "address": ",".join(chunk), "tag": "latest", "apikey": key},
+                 timeout=30).json()
+        for row in r.get("result") or []:
+            if isinstance(row, dict) and str(row.get("balance", "")).isdigit():
+                out[row["account"]] = int(row["balance"]) / 1e18
+    return out
+
+
 def take_snapshot(seed: dict | None = None, etherscan_key: str = "",
                   refresh_eth_list: bool = True) -> dict:
     seed = seed or load_seed()
@@ -211,9 +238,20 @@ def take_snapshot(seed: dict | None = None, etherscan_key: str = "",
         eth_list = seed.get("eth") or []
 
     btc_addrs = [r["address"] for r in (seed.get("btc") or [])]
-    btc = {k: round(v, 8) for k, v in _gather(btc_addrs, btc_balance).items()}
+    try:
+        btc = {k: round(v, 8) for k, v in btc_balances_batch(btc_addrs).items()}
+    except Exception as e:
+        print("BTC 批量余额失败，逐个查询:", type(e).__name__)
+        btc = {k: round(v, 8) for k, v in _gather(btc_addrs, btc_balance, workers=2).items()}
     eth_addrs = [r["address"] for r in eth_list]
-    eth_raw = _gather(eth_addrs, lambda a: eth_balance(a, etherscan_key), workers=3)
+    if etherscan_key:
+        try:
+            eth_raw = eth_balances_batch(eth_addrs, etherscan_key)
+        except Exception as e:
+            print("ETH 批量余额失败，逐个查询:", type(e).__name__)
+            eth_raw = _gather(eth_addrs, lambda a: eth_balance(a, etherscan_key), workers=2)
+    else:
+        eth_raw = _gather(eth_addrs, lambda a: eth_balance(a, ""), workers=2)
     labels = {r["address"]: r.get("label", "") for r in eth_list}
     eth = {k: {"balance": round(v, 6), "label": labels.get(k, "")}
            for k, v in eth_raw.items()}
