@@ -111,6 +111,22 @@
         "addresses": {},
         "labels": {}
       }
+    },
+    {
+      "ts": 1793880875.7601957,
+      "coverage": {
+        "btc": 0,
+        "eth": 0
+      },
+      "btc": {
+        "total": 0,
+        "addresses": {}
+      },
+      "eth": {
+        "total": 0,
+        "addresses": {},
+        "labels": {}
+      }
     }
   ]
 }
