@@ -1,38 +1,6 @@
 {
   "snapshots": [
     {
-      "ts": 1795254111.397436,
-      "coverage": {
-        "btc": 0,
-        "eth": 0
-      },
-      "btc": {
-        "total": 0,
-        "addresses": {}
-      },
-      "eth": {
-        "total": 0,
-        "addresses": {},
-        "labels": {}
-      }
-    },
-    {
-      "ts": 1795281958.6725817,
-      "coverage": {
-        "btc": 0,
-        "eth": 0
-      },
-      "btc": {
-        "total": 0,
-        "addresses": {}
-      },
-      "eth": {
-        "total": 0,
-        "addresses": {},
-        "labels": {}
-      }
-    },
-    {
       "ts": 1795302483.6228642,
       "coverage": {
         "btc": 0,
@@ -146,6 +114,22 @@
     },
     {
       "ts": 1795499941.8259723,
+      "coverage": {
+        "btc": 0,
+        "eth": 0
+      },
+      "btc": {
+        "total": 0,
+        "addresses": {}
+      },
+      "eth": {
+        "total": 0,
+        "addresses": {},
+        "labels": {}
+      }
+    },
+    {
+      "ts": 1795541649.2842965,
       "coverage": {
         "btc": 0,
         "eth": 0
