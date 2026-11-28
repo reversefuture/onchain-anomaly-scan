@@ -1,22 +1,6 @@
 {
   "snapshots": [
     {
-      "ts": 1795573247.4116507,
-      "coverage": {
-        "btc": 0,
-        "eth": 0
-      },
-      "btc": {
-        "total": 0,
-        "addresses": {}
-      },
-      "eth": {
-        "total": 0,
-        "addresses": {},
-        "labels": {}
-      }
-    },
-    {
       "ts": 1795610448.2280152,
       "coverage": {
         "btc": 0,
@@ -130,6 +114,22 @@
     },
     {
       "ts": 1795831020.5946534,
+      "coverage": {
+        "btc": 0,
+        "eth": 0
+      },
+      "btc": {
+        "total": 0,
+        "addresses": {}
+      },
+      "eth": {
+        "total": 0,
+        "addresses": {},
+        "labels": {}
+      }
+    },
+    {
+      "ts": 1795860975.1144438,
       "coverage": {
         "btc": 0,
         "eth": 0
